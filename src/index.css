@@ -44,3 +44,7 @@ html, body {
   background: var(--background);
   overscroll-behavior: none; /* Prevent pull-to-refresh on mobile */
 }
+html, body {
+  height: 100%;
+  position: relative;
+}
