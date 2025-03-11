@@ -5,6 +5,7 @@ import './index.css'
 import './App.css'
 import App from './App.jsx'
 
+screen.orientation.lock("portrait")
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <HashRouter>
