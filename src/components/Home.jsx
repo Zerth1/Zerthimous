@@ -6,8 +6,8 @@ import speakImage from '../assets/speak.png'
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen h-screen">
-      <div className="text-center mb-2 sm:mb-4 md:mb-4 lg:mb-8">
-        <h1 className="text-5x1 sm:text-5xl md:text-5xl lg:text-6xl font-bold whitespace-nowrap p-4">[Zerthimous]</h1>
+      <div className="text-center m-2 sm:m-4 md:m-4 lg:m-8">
+        <h1 className="text-5x1 sm:text-5xl md:text-5xl lg:text-6xl font-bold whitespace-nowrap p-1">[Zerthimous]</h1>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4 transform translate-y-[10vh]">
         <Link to="/memory-recall" className="sm:p-6 md:p-12 lg:p-25 flex items-center justify-center text-center text-3xl font-bold neon-effect bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl">
