@@ -1,5 +1,6 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { useLocalStorage } from "../../../useLocalStorage";
+
 // Create a context for the settings
 const SettingsContext = createContext();
 
@@ -8,24 +9,12 @@ const DifficultySettings = () => {
 
   const handleChunkLengthChange = (e) => {
     const value = e.target.value;
-    if (value === '') {
-      setChunkLength('');
-    } else {
-      const numValue = parseInt(value) || 1;
-      setChunkLength(Math.max(1, Math.min(20, numValue)));
-    }
+    setChunkLength(value);
   };
 
   const handleNumberOfDigitsChange = (e) => {
     const value = e.target.value;
-    if (value === '') {
-      setNumberOfDigits('');
-    } else {
-      const numValue = parseInt(value) || 10; // Default to 10 instead of 1
-      // Ensure minimum is 10 and at least chunkLength
-      const minValue = Math.max(10, chunkLength || 1);
-      setNumberOfDigits(Math.max(minValue, Math.min(100, numValue)));
-    }
+    setNumberOfDigits(value);
   };
 
   const handleChunkLengthBlur = () => {
@@ -33,23 +22,25 @@ const DifficultySettings = () => {
       setChunkLength(1);
     } else {
       const numValue = parseInt(chunkLength) || 1;
-      setChunkLength(Math.max(1, Math.min(20, numValue)));
-      // Adjust numberOfDigits if it's less than the new chunkLength
-      if (numberOfDigits < numValue) {
-        setNumberOfDigits(Math.max(10, numValue));
+      const validatedValue = Math.max(1, Math.min(20, numValue));
+      setChunkLength(validatedValue);
+      if (numberOfDigits !== '' && !isNaN(parseInt(numberOfDigits))) {
+        const numDigitsValue = parseInt(numberOfDigits);
+        if (numDigitsValue < validatedValue) {
+          setNumberOfDigits(Math.max(10, validatedValue));
+        }
       }
     }
   };
 
   const handleNumberOfDigitsBlur = () => {
     if (numberOfDigits === '' || isNaN(parseInt(numberOfDigits))) {
-      // Default to 10 or chunkLength, whichever is greater
       setNumberOfDigits(Math.max(10, chunkLength || 1));
     } else {
       const numValue = parseInt(numberOfDigits) || 10;
-      // Ensure minimum is 10 and at least chunkLength
       const minValue = Math.max(10, chunkLength || 1);
-      setNumberOfDigits(Math.max(minValue, Math.min(100, numValue)));
+      const validatedValue = Math.max(minValue, Math.min(100, numValue));
+      setNumberOfDigits(validatedValue);
     }
   };
 
@@ -75,7 +66,7 @@ const DifficultySettings = () => {
         </label>
         <input
           type="number"
-          min={Math.max(10, chunkLength || 1)} // Reflect dynamic min in UI
+          min={Math.max(10, chunkLength || 1)}
           max="100"
           value={numberOfDigits}
           onChange={handleNumberOfDigitsChange}
@@ -86,10 +77,32 @@ const DifficultySettings = () => {
     </div>
   );
 };
-
+const AdvancedSettings = () => {
+    const { blindfoldMode, setBlindfoldMode } = useContext(SettingsContext);
+    const handleBlindfoldModeChange = (e) => {
+      setBlindfoldMode(e.target.checked);
+    };
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="blindfoldMode"
+            checked={blindfoldMode}
+            onChange={handleBlindfoldModeChange}
+            className="w-5 h-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+          />
+          <label htmlFor="blindfoldMode" className="ml-2 text-sm font-medium text-white">
+            Blindfold Mode
+          </label>
+        </div>
+      </div>
+    );
+  };
 // Single declaration of settingsComponents
 const settingsComponents = {
   difficulty: DifficultySettings,
+  advanced: AdvancedSettings,
 };
 
 function Settings({ onTabChange }) {
@@ -106,19 +119,19 @@ function Settings({ onTabChange }) {
       <div className="w-full p-4">
         <h2 className="text-3xl font-bold mb-4">Settings</h2>
         <ul className="space-y-2">
-          {["difficulty"].map((tab) => {
+          {["difficulty", "advanced"].map((tab) => {
             const SettingsComponent = settingsComponents[tab];
             return (
               <li
                 key={tab}
-                className={`p-2 rounded-lg cursor-pointer text-1xl font-bold ${
+                className={`p-2 rounded-lg cursor-pointer text-xl font-bold ${
                   activeTab === tab ? "bg-gray-700" : "hover:bg-gray-800"
                 }`}
                 onClick={() => handleTabClick(tab)}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 {activeTab === tab && (
-                  <div 
+                  <div
                     className="p-4 bg-gray-800 rounded-lg mt-2"
                     onClick={handleSettingsClick}
                   >
@@ -135,62 +148,182 @@ function Settings({ onTabChange }) {
 }
 
 function Game() {
-  const { chunkLength, numberOfDigits } = useContext(SettingsContext);
+    const { isGamePlaying, chunkLength, numberOfDigits, blindfoldMode } = useContext(SettingsContext);
+    const [generatedNumber, setGeneratedNumber] = useState(null);
+    const [currentChunk, setCurrentChunk] = useState(''); // New state for the current chunk
+    const speechCancelRef = useRef(false);
   
-  return (
-    <div className="flex-1 relative">
-      <h1 className="absolute bottom-4 right-4 text-3xl font-bold">
-        Press [Space] To Start/Stop
-      </h1>
-      {/* You can use the settings here */}
-      {/* <p>Chunk Length: {chunkLength}, Number of Digits: {numberOfDigits}</p> */}
-    </div>
-  );
+    const generateNumber = () => {
+      const digits = Math.max(1, Math.floor(Number(numberOfDigits) || 1));
+      let result = '';
+      for (let i = 0; i < digits; i++) {
+        const digit = Math.floor(Math.random() * 10);
+        result += digit;
+      }
+      return result;
+    };
+  
+    const generateNewNumber = () => {
+      const newNumber = generateNumber();
+      setGeneratedNumber(newNumber);
+    };
+  
+    const speakChunk = (text) => {
+      return new Promise((resolve) => {
+        if (speechCancelRef.current) {
+          window.speechSynthesis.cancel();
+          return resolve();
+        }
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        utterance.onend = () => resolve();
+        utterance.onerror = () => resolve();
+        window.speechSynthesis.speak(utterance);
+      });
+    };
+  
+    const speakNumberInChunks = async (number) => {
+      if (!number || !isGamePlaying || speechCancelRef.current) return;
+      
+      window.speechSynthesis.cancel();
+      const chunkSize = Math.max(1, Math.floor(Number(chunkLength) || 1));
+      const chunks = [];
+      
+      for (let i = 0; i < number.length; i += chunkSize) {
+        chunks.push(number.slice(i, i + chunkSize));
+      }
+      
+      for (const chunk of chunks) {
+        if (!isGamePlaying || speechCancelRef.current) {
+          window.speechSynthesis.cancel();
+          setCurrentChunk(''); // Clear the current chunk when canceled
+          return;
+        }
+        setCurrentChunk(chunk); // Set the current chunk before speaking
+        await speakChunk(chunk);
+      }
+      setCurrentChunk(''); // Clear the chunk when done
+    };
+  
+    useEffect(() => {
+      if (isGamePlaying) {
+        if (!generatedNumber) {
+          speechCancelRef.current = false;
+          generateNewNumber();
+        }
+      } else {
+        speechCancelRef.current = true;
+        window.speechSynthesis.cancel();
+        setGeneratedNumber(null);
+        setCurrentChunk(''); // Clear the current chunk when game stops
+      }
+    }, [isGamePlaying]);
+  
+    useEffect(() => {
+      if (isGamePlaying && generatedNumber) {
+        speechCancelRef.current = false;
+        speakNumberInChunks(generatedNumber);
+      }
+    }, [generatedNumber, chunkLength, isGamePlaying]);
+  
+    useEffect(() => {
+      return () => {
+        speechCancelRef.current = true;
+        window.speechSynthesis.cancel();
+        setCurrentChunk(''); // Clear on unmount
+      };
+    }, []);
+  
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-screen text-white">
+        <div className="text-center">
+            <p className="text-3xl font-bold">
+              {currentChunk || ' '} {/* Display current chunk or space when idle */}
+            </p>
+        </div>
+      </div>
+    );
 }
 
 export default function MindBurst() {
-  const [isGamePlaying, setIsGamePlaying] = useState(true);
-  const [windowHeight, setWindowHeight] = useState("min-h-screen lg:h-screen");
+    const [isGamePlaying, setIsGamePlaying] = useState(false);
+    const [windowHeight, setWindowHeight] = useState("min-h-screen lg:h-screen");
   
-  const [chunkLength, setChunkLength] = useLocalStorage('mind_burst_chunk_length', 5);
-  const [numberOfDigits, setNumberOfDigits] = useLocalStorage('mind_burst_number_of_digits', 10);
-
-  useEffect(() => {
-    const handleKeyPress = (event) => {
-      if (event.key === " ") {
-        event.preventDefault();
-        setIsGamePlaying((prev) => !prev);
+    const [chunkLength, setChunkLength] = useLocalStorage('mind_burst_chunk_length', 5);
+    const [numberOfDigits, setNumberOfDigits] = useLocalStorage('mind_burst_number_of_digits', 10);
+    const [blindfoldMode, setBlindfoldMode] = useLocalStorage('mind_burst_blind_fold_mode', false);
+  
+    const handleTabChange = (activeTab) => {
+      if (activeTab) {
+        setWindowHeight("min-h-screen h-[calc(100vh+500px)]");
+      } else {
+        setWindowHeight("min-h-screen lg:h-screen");
       }
     };
-    window.addEventListener("keydown", handleKeyPress);
-    return () => {
-      window.removeEventListener("keydown", handleKeyPress);
+  
+    const toggleGame = () => {
+      if (!isGamePlaying) {
+        handleTabChange(false);
+      }
+      setIsGamePlaying((prev) => {
+        const newState = !prev;
+        if (!newState) {
+          window.speechSynthesis.cancel();
+        }
+        return newState;
+      });
     };
-  }, []);
-
-  const handleTabChange = (activeTab) => {
-    if (activeTab) {
-      setWindowHeight("min-h-screen h-[calc(100vh+500px)]");
-    } else {
-      setWindowHeight("min-h-screen h-screen");
-    }
-  };
-
-  const settingsContextValue = {
-    chunkLength,
-    setChunkLength,
-    numberOfDigits,
-    setNumberOfDigits
-  };
-
-  return (
-    <SettingsContext.Provider value={settingsContextValue}>
-      <div className={`flex flex-col ${windowHeight}`}>
-        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-          {isGamePlaying && <Settings onTabChange={handleTabChange} />}
-          <Game />
+  
+    useEffect(() => {
+      const handleKeyPress = (event) => {
+        if (event.key === " ") {
+          event.preventDefault();
+          toggleGame();
+        }
+      };
+      
+      window.addEventListener("keydown", handleKeyPress);
+      return () => {
+        window.removeEventListener("keydown", handleKeyPress);
+        window.speechSynthesis.cancel();
+      };
+    }, [isGamePlaying]);
+  
+    const settingsContextValue = {
+      isGamePlaying,
+      chunkLength,
+      setChunkLength,
+      numberOfDigits,
+      setNumberOfDigits,
+      blindfoldMode,
+      setBlindfoldMode,
+    };
+  
+    return (
+      <SettingsContext.Provider value={settingsContextValue}>
+        <div className={`flex flex-col ${windowHeight} relative`}>
+          <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+            {isGamePlaying ? (
+              <Game />
+            ) : (
+              <Settings onTabChange={handleTabChange} />
+            )}
+          </div>
+          <div className="absolute bottom-4 right-4 flex items-center space-x-4">
+            <button
+              onClick={toggleGame}
+              className="px-4 py-2 bg-blue-500 text-white font-bold rounded hover:bg-blue-600 focus:outline-none"
+            >
+              {isGamePlaying ? 'Stop' : 'Start'}
+            </button>
+            <h1 className="text-3xl font-bold text-white">
+              Press [Space] To Start/Stop
+            </h1>
+          </div>
         </div>
-      </div>
-    </SettingsContext.Provider>
-  );
+      </SettingsContext.Provider>
+    );
 }
