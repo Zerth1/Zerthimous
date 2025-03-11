@@ -6,7 +6,7 @@ import speakImage from '../assets/speak.png'
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen h-screen">
-      <div className="text-center m-2 sm:m-4 md:m-4 lg:m-8">
+      <div className="text-center mb-0 sm:mb-1 md:mb-2 lg:mb-3">
         <h1 className="text-5xl sm:text-5xl md:text-5xl lg:text-6xl font-bold whitespace-nowrap p-1">[Zerthimous]</h1>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4 transform translate-y-[10vh]">
