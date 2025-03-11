@@ -150,101 +150,133 @@ function Settings({ onTabChange }) {
 function Game() {
     const { isGamePlaying, chunkLength, numberOfDigits, blindfoldMode } = useContext(SettingsContext);
     const [generatedNumber, setGeneratedNumber] = useState(null);
-    const [currentChunk, setCurrentChunk] = useState(''); // New state for the current chunk
+    const [chunks, setChunks] = useState([]); // Store all chunks
+    const [currentChunkIndex, setCurrentChunkIndex] = useState(-1); // Track current chunk position
     const speechCancelRef = useRef(false);
-  
+
     const generateNumber = () => {
-      const digits = Math.max(1, Math.floor(Number(numberOfDigits) || 1));
-      let result = '';
-      for (let i = 0; i < digits; i++) {
-        const digit = Math.floor(Math.random() * 10);
-        result += digit;
-      }
-      return result;
+        const digits = Math.max(1, Math.floor(Number(numberOfDigits) || 1));
+        let result = '';
+        for (let i = 0; i < digits; i++) {
+            const digit = Math.floor(Math.random() * 10);
+            result += digit;
+        }
+        return result;
     };
-  
+
     const generateNewNumber = () => {
-      const newNumber = generateNumber();
-      setGeneratedNumber(newNumber);
+        const newNumber = generateNumber();
+        setGeneratedNumber(newNumber);
     };
-  
+
     const speakChunk = (text) => {
-      return new Promise((resolve) => {
-        if (speechCancelRef.current) {
-          window.speechSynthesis.cancel();
-          return resolve();
+        return new Promise((resolve) => {
+            if (speechCancelRef.current) {
+                window.speechSynthesis.cancel();
+                return resolve();
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            utterance.onend = () => resolve();
+            utterance.onerror = () => resolve();
+            window.speechSynthesis.speak(utterance);
+        });
+    };
+
+    const createChunks = (number) => {
+        const chunkSize = Math.max(1, Math.floor(Number(chunkLength) || 1));
+        const newChunks = [];
+        for (let i = 0; i < number.length; i += chunkSize) {
+            newChunks.push(number.slice(i, i + chunkSize));
         }
+        return newChunks;
+    };
+
+    const initializeNumber = (number) => {
+        if (!number || !isGamePlaying || speechCancelRef.current) return;
         
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
-        utterance.onend = () => resolve();
-        utterance.onerror = () => resolve();
-        window.speechSynthesis.speak(utterance);
-      });
-    };
-  
-    const speakNumberInChunks = async (number) => {
-      if (!number || !isGamePlaying || speechCancelRef.current) return;
-      
-      window.speechSynthesis.cancel();
-      const chunkSize = Math.max(1, Math.floor(Number(chunkLength) || 1));
-      const chunks = [];
-      
-      for (let i = 0; i < number.length; i += chunkSize) {
-        chunks.push(number.slice(i, i + chunkSize));
-      }
-      
-      for (const chunk of chunks) {
-        if (!isGamePlaying || speechCancelRef.current) {
-          window.speechSynthesis.cancel();
-          setCurrentChunk(''); // Clear the current chunk when canceled
-          return;
-        }
-        setCurrentChunk(chunk); // Set the current chunk before speaking
-        await speakChunk(chunk);
-      }
-      setCurrentChunk(''); // Clear the chunk when done
-    };
-  
-    useEffect(() => {
-      if (isGamePlaying) {
-        if (!generatedNumber) {
-          speechCancelRef.current = false;
-          generateNewNumber();
-        }
-      } else {
-        speechCancelRef.current = true;
         window.speechSynthesis.cancel();
-        setGeneratedNumber(null);
-        setCurrentChunk(''); // Clear the current chunk when game stops
-      }
+        const newChunks = createChunks(number);
+        setChunks(newChunks);
+        setCurrentChunkIndex(0);
+        // Removed initial playback of first chunk
+    };
+
+    // Key press handler without automatic playback
+    useEffect(() => {
+        const handleKeyPress = (event) => {
+            if (event.key === 'a' && chunks.length > 0) {
+                // Go to previous chunk without playing
+                setCurrentChunkIndex(prev => 
+                    prev > 0 ? prev - 1 : prev
+                );
+            } else if (event.key === 'l' && chunks.length > 0) {
+                // Go to next chunk without playing
+                setCurrentChunkIndex(prev => 
+                    prev < chunks.length - 1 ? prev + 1 : prev
+                );
+            } else if (event.key === 'r' && chunks.length > 0 && currentChunkIndex >= 0) {
+                // Replay current chunk
+                window.speechSynthesis.cancel();
+                speakChunk(chunks[currentChunkIndex]);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [chunks, currentChunkIndex]);
+
+    useEffect(() => {
+        if (isGamePlaying) {
+            if (!generatedNumber) {
+                speechCancelRef.current = false;
+                generateNewNumber();
+            }
+        } else {
+            speechCancelRef.current = true;
+            window.speechSynthesis.cancel();
+            setGeneratedNumber(null);
+            setChunks([]);
+            setCurrentChunkIndex(-1);
+        }
     }, [isGamePlaying]);
-  
+
     useEffect(() => {
-      if (isGamePlaying && generatedNumber) {
-        speechCancelRef.current = false;
-        speakNumberInChunks(generatedNumber);
-      }
+        if (isGamePlaying && generatedNumber) {
+            speechCancelRef.current = false;
+            initializeNumber(generatedNumber);
+        }
     }, [generatedNumber, chunkLength, isGamePlaying]);
-  
+
     useEffect(() => {
-      return () => {
-        speechCancelRef.current = true;
-        window.speechSynthesis.cancel();
-        setCurrentChunk(''); // Clear on unmount
-      };
+        return () => {
+            speechCancelRef.current = true;
+            window.speechSynthesis.cancel();
+            setChunks([]);
+            setCurrentChunkIndex(-1);
+        };
     }, []);
-  
+
     return (
-      <div className="flex-1 flex items-center justify-center min-h-screen text-white">
-        <div className="text-center">
-            <p className="text-3xl font-bold">
-              {currentChunk || ' '} {/* Display current chunk or space when idle */}
-            </p>
+        <div className="flex-1 flex items-center justify-center min-h-screen text-white">
+            <div className="text-center">
+                <p className="text-3xl font-bold">
+                    {currentChunkIndex >= 0 && currentChunkIndex < chunks.length 
+                        ? chunks[currentChunkIndex] 
+                        : ' '}
+                </p>
+            </div>
+            {isGamePlaying && (
+                <div className="absolute top-4 right-4 text-right">
+                    <p className="text-xl font-bold">[A] Previous Chunk</p>
+                    <p className="text-xl font-bold">[L] Next Chunk</p>
+                    <p className="text-xl font-bold">[R] Play Chunk</p>
+                </div>
+            )}
         </div>
-      </div>
     );
 }
 
