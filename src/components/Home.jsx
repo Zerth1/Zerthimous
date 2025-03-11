@@ -5,7 +5,7 @@ import puzzlePieceImage from '../assets/puzzle-piece.png'
 import speakImage from '../assets/speak.png'
 export default function Home() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen h-screen">
+    <div className="flex flex-col items-center justify-center min-h-screen h-screen transform translate-y-[10vh]">
       <div className="text-center mb-0 sm:mb-1 md:mb-2 lg:mb-3">
         <h1 className="text-5xl sm:text-5xl md:text-5xl lg:text-6xl font-bold whitespace-nowrap p-1">[Zerthimous]</h1>
       </div>
