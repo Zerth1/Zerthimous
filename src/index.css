@@ -38,3 +38,9 @@
   font-weight: bold;
   text-align: center;
 }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  overscroll-behavior: none; /* Prevent pull-to-refresh on mobile */
+}
