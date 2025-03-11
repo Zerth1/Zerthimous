@@ -9,7 +9,7 @@ export default function Home() {
       <div className="text-center mb-0 sm:mb-1 md:mb-2 lg:mb-3">
         <h1 className="text-5xl sm:text-5xl md:text-5xl lg:text-6xl font-bold whitespace-nowrap pt-24">[Zerthimous]</h1>
       </div>
-      <div className="flex flex-col items-center justify-center min-h-screen h-dvh transform translate-y-[5vh]">
+      <div className="flex flex-col items-center justify-center min-h-screen h-dvh">
         <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
           <Link to="/memory-recall" className="sm:p-6 md:p-12 lg:p-25 flex items-center justify-center text-center text-3xl font-bold neon-effect bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl">
             <img src={ramImage} className="h-12 mr-4"/>
