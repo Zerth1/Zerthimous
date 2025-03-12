@@ -23,7 +23,7 @@ const DifficultySettings = () => {
   
     const handleTimerChange = (e) => {
       const value = e.target.value;
-      setTimer(value); // Allow temporary invalid input while typing
+      setTimer(value);
     };
   
     const handleChunkLengthBlur = () => {
@@ -54,12 +54,11 @@ const DifficultySettings = () => {
     };
   
     const handleTimerBlur = () => {
-      // After losing focus, verify and correct the timer value
-      const numValue = parseInt(timer); // Attempt to parse the current timer value
+      const numValue = parseInt(timer);
       if (timer === '' || isNaN(numValue)) {
-        setTimer(30); // Default to 30 if empty or not a number
+        setTimer(30);
       } else {
-        const validatedValue = Math.max(1, Math.min(300, numValue)); // Clamp between 1 and 300
+        const validatedValue = Math.max(1, Math.min(300, numValue));
         setTimer(validatedValue);
       }
     };
@@ -102,7 +101,7 @@ const DifficultySettings = () => {
             type="number"
             min="1"
             max="300"
-            value={timer ?? ''} // Show empty string if timer is undefined
+            value={timer ?? ''}
             onChange={handleTimerChange}
             onBlur={handleTimerBlur}
             className="w-full p-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -111,71 +110,37 @@ const DifficultySettings = () => {
       </div>
     );
 };
-const AdvancedSettings = () => {
-    const { blindfoldMode, setBlindfoldMode } = useContext(SettingsContext);
-    const handleBlindfoldModeChange = (e) => {
-      setBlindfoldMode(e.target.checked);
-    };
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="blindfoldMode"
-            checked={blindfoldMode}
-            onChange={handleBlindfoldModeChange}
-            className="w-5 h-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
-          />
-          <label htmlFor="blindfoldMode" className="ml-2 text-sm font-medium text-white">
-            Blindfold Mode
-          </label>
-        </div>
-      </div>
-    );
-  };
-// Single declaration of settingsComponents
-const settingsComponents = {
-  difficulty: DifficultySettings,
-  advanced: AdvancedSettings,
-};
 
 function Settings({ onTabChange }) {
-  const [activeTab, setActiveTab] = useState(null);
-  const handleTabClick = (tab) => {
-    setActiveTab(activeTab === tab ? null : tab);
-    onTabChange(activeTab === tab ? null : tab);
+  const [activeTab, setActiveTab] = useState("difficulty");
+  const handleTabClick = () => {
+    setActiveTab(activeTab === "difficulty" ? null : "difficulty");
+    onTabChange(activeTab === "difficulty" ? null : "difficulty");
   };
   const handleSettingsClick = (e) => {
     e.stopPropagation();
   };
+  
   return (
     <div className="flex flex-col h-auto lg:h-full w-full lg:w-1/5 bg-gray-900 text-white">
       <div className="w-full p-4">
         <h2 className="text-3xl font-bold mb-4">Settings</h2>
-        <ul className="space-y-2">
-          {["difficulty", "advanced"].map((tab) => {
-            const SettingsComponent = settingsComponents[tab];
-            return (
-              <li
-                key={tab}
-                className={`p-2 rounded-lg cursor-pointer text-xl font-bold ${
-                  activeTab === tab ? "bg-gray-700" : "hover:bg-gray-800"
-                }`}
-                onClick={() => handleTabClick(tab)}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                {activeTab === tab && (
-                  <div
-                    className="p-4 bg-gray-800 rounded-lg mt-2"
-                    onClick={handleSettingsClick}
-                  >
-                    <SettingsComponent />
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <div
+          className={`p-2 rounded-lg cursor-pointer text-xl font-bold ${
+            activeTab === "difficulty" ? "bg-gray-700" : "hover:bg-gray-800"
+          }`}
+          onClick={handleTabClick}
+        >
+          Difficulty
+          {activeTab === "difficulty" && (
+            <div
+              className="p-4 bg-gray-800 rounded-lg mt-2"
+              onClick={handleSettingsClick}
+            >
+              <DifficultySettings />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -187,14 +152,12 @@ function Game() {
         setIsGamePlaying, 
         chunkLength, 
         numberOfDigits, 
-        blindfoldMode, 
         timer 
     } = useContext(SettingsContext);
     const [generatedNumber, setGeneratedNumber] = useState(null);
-    const [chunks, setChunks] = useState([]); // Store all chunks
-    const [currentChunkIndex, setCurrentChunkIndex] = useState(-1); // Track current chunk position
-    const [time, setTime] = useState(timer); // Timer state initialized with context timer
-    const speechCancelRef = useRef(false);
+    const [chunks, setChunks] = useState([]);
+    const [currentChunkIndex, setCurrentChunkIndex] = useState(-1);
+    const [time, setTime] = useState(timer);
 
     const generateNumber = () => {
         const digits = Math.max(1, Math.floor(Number(numberOfDigits) || 1));
@@ -211,23 +174,6 @@ function Game() {
         setGeneratedNumber(newNumber);
     };
 
-    const speakChunk = (text) => {
-        return new Promise((resolve) => {
-            if (speechCancelRef.current) {
-                window.speechSynthesis.cancel();
-                return resolve();
-            }
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-            utterance.volume = 1.0;
-            utterance.onend = () => resolve();
-            utterance.onerror = () => resolve();
-            window.speechSynthesis.speak(utterance);
-        });
-    };
-
     const createChunks = (number) => {
         const chunkSize = Math.max(1, Math.floor(Number(chunkLength) || 1));
         const newChunks = [];
@@ -238,45 +184,39 @@ function Game() {
     };
 
     const initializeNumber = (number) => {
-        if (!number || !isGamePlaying || speechCancelRef.current) return;
-        
-        window.speechSynthesis.cancel();
+        if (!number || !isGamePlaying) return;
         const newChunks = createChunks(number);
         setChunks(newChunks);
         setCurrentChunkIndex(0);
     };
 
-    // Timer countdown effect with input prompt when timer ends
     useEffect(() => {
         let interval;
         if (isGamePlaying && time > 0) {
             interval = setInterval(() => {
                 setTime((prev) => prev - 1);
-            }, 1000); // Decrease by 1 every second
+            }, 1000);
         } else if (isGamePlaying && time <= 0) {
-            // When timer reaches 0, prompt for input and stop the game
-            const concatenatedChunks = chunks.join(''); // Concatenate all chunks in order
+            const concatenatedChunks = chunks.join('');
             const userInput = prompt('Enter The Full Number (All Chunks Concatenated In order):');
-            if (userInput !== null) { // If user didn't cancel the prompt
+            if (userInput !== null) {
                 if (userInput === concatenatedChunks) {
                     alert('Correct! Well Done!');
                 } else {
                     alert(`Incorrect. Your Input: ${userInput}. Correct Number: ${concatenatedChunks}`);
                 }
             }
-            setIsGamePlaying(false); // End the game after input
+            setIsGamePlaying(false);
         }
-        return () => clearInterval(interval); // Cleanup interval
+        return () => clearInterval(interval);
     }, [isGamePlaying, time, setIsGamePlaying, chunks]);
 
-    // Reset timer when game starts or timer setting changes
     useEffect(() => {
         if (isGamePlaying) {
-            setTime(timer); // Reset to initial timer value from context
+            setTime(timer);
         }
     }, [isGamePlaying, timer]);
 
-    // Key press handler
     useEffect(() => {
         const handleKeyPress = (event) => {
             if (event.key === 'a' && chunks.length > 0) {
@@ -287,25 +227,19 @@ function Game() {
                 setCurrentChunkIndex(prev => 
                     prev < chunks.length - 1 ? prev + 1 : prev
                 );
-            } else if (blindfoldMode && event.key === 'r' && chunks.length > 0 && currentChunkIndex >= 0) {
-                window.speechSynthesis.cancel();
-                speakChunk(chunks[currentChunkIndex]);
             }
         };
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [chunks, currentChunkIndex, blindfoldMode]);
+    }, [chunks, currentChunkIndex]);
 
     useEffect(() => {
         if (isGamePlaying) {
             if (!generatedNumber) {
-                speechCancelRef.current = false;
                 generateNewNumber();
             }
         } else {
-            speechCancelRef.current = true;
-            window.speechSynthesis.cancel();
             setGeneratedNumber(null);
             setChunks([]);
             setCurrentChunkIndex(-1);
@@ -314,19 +248,9 @@ function Game() {
 
     useEffect(() => {
         if (isGamePlaying && generatedNumber) {
-            speechCancelRef.current = false;
             initializeNumber(generatedNumber);
         }
     }, [generatedNumber, chunkLength, isGamePlaying]);
-
-    useEffect(() => {
-        return () => {
-            speechCancelRef.current = true;
-            window.speechSynthesis.cancel();
-            setChunks([]);
-            setCurrentChunkIndex(-1);
-        };
-    }, []);
 
     return (
         <div className="flex-1 flex items-center justify-center min-h-screen text-white relative">
@@ -342,7 +266,6 @@ function Game() {
                     <div className="absolute top-4 right-4 text-right">
                         <p className="text-xl font-bold">[A] Previous Chunk</p>
                         <p className="text-xl font-bold">[L] Next Chunk</p>
-                        {blindfoldMode && <p className="text-xl font-bold">[R] Play Chunk</p>}
                     </div>
                     <div 
                         className="absolute w-full text-center text-2xl font-bold"
@@ -362,7 +285,6 @@ export default function MindBurst() {
   
     const [chunkLength, setChunkLength] = useLocalStorage('mind_burst_chunk_length', 5);
     const [numberOfDigits, setNumberOfDigits] = useLocalStorage('mind_burst_number_of_digits', 10);
-    const [blindfoldMode, setBlindfoldMode] = useLocalStorage('mind_burst_blind_fold_mode', false);
     const [timer, setTimer] = useLocalStorage('mind_burst_timer', 30)
   
     const handleTabChange = (activeTab) => {
@@ -377,13 +299,7 @@ export default function MindBurst() {
       if (!isGamePlaying) {
         handleTabChange(false);
       }
-      setIsGamePlaying((prev) => {
-        const newState = !prev;
-        if (!newState) {
-          window.speechSynthesis.cancel();
-        }
-        return newState;
-      });
+      setIsGamePlaying((prev) => !prev);
     };
   
     useEffect(() => {
@@ -395,10 +311,7 @@ export default function MindBurst() {
       };
       
       window.addEventListener("keydown", handleKeyPress);
-      return () => {
-        window.removeEventListener("keydown", handleKeyPress);
-        window.speechSynthesis.cancel();
-      };
+      return () => window.removeEventListener("keydown", handleKeyPress);
     }, [isGamePlaying]);
   
     const settingsContextValue = {
@@ -408,8 +321,6 @@ export default function MindBurst() {
       setChunkLength,
       numberOfDigits,
       setNumberOfDigits,
-      blindfoldMode,
-      setBlindfoldMode,
       timer, 
       setTimer
     };
