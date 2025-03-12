@@ -1,0 +1,50 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #000000;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.neon-effect {
+  text-shadow: 
+    0 0 5px rgba(255, 255, 255, 0.8),
+    0 0 10px rgba(255, 255, 255, 0.6), 
+    0 0 15px rgba(255, 255, 255, 0.4); 
+  box-shadow: 
+    0 0 8px rgba(255, 255, 255, 0.6),
+    0 0 16px rgba(255, 255, 255, 0.4), 
+    0 0 24px rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease-in-out;
+}
+.neon-effect:hover {
+  text-shadow: 
+    0 0 10px rgba(255, 255, 255, 0.8),
+    0 0 20px rgba(255, 255, 255, 0.6), 
+    0 0 30px rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 0 12px rgba(255, 255, 255, 0.8),
+    0 0 24px rgba(255, 255, 255, 0.6), 
+    0 0 36px rgba(255, 255, 255, 0.4);
+}
+.grid-item {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  overscroll-behavior: none; /* Prevent pull-to-refresh on mobile */
+}
+html, body {
+  height: 100%;
+  position: relative;
+}
